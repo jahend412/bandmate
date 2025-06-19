@@ -1,79 +1,76 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
-const pool = require("pg");
+const bcrypt = require("bcryptjs");
+const pool = require("../config/database");
 const router = express.Router();
 
 // Register Route
-router.post("/register"),
-  async (req, res) => {
-    try {
-      const { email, password, role } = req.body;
+router.post("/register", async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
 
-      const existingUser = await pool.query(
-        "SELECT * FROM users WHERE email = $1",
-        [email]
-      );
+    // Check if user already exists
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
 
-      if (existingUser.rows.length > 0) {
-        return (
-          res.status(400),
-          json({
-            success: false,
-            message: "User already exists",
-          })
-        );
-      }
-
-      // Hash password
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-      // Create user
-      const newUser = await pool.query(
-        "INSERT INTO  users  (email, password_hash, role) VALUES ($1, $2, $3) RETURNING *",
-        [email, hashedPassword, role]
-      );
-
-      // Create session
-      req.session.userId = newUser.rows[0].id;
-      req.session.userRole = newUser.rows[0].role;
-
-      res.status(201).json({
-        sucess: true,
-        message: "User created successfully",
-        user: {
-          id: newUser.rows[0].id,
-          email: newUser.rows[0].email,
-          role: newUser.rows[0].role,
-        },
-      });
-    } catch (error) {
-      res.status(500).json({
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
         success: false,
-        message: "Registration Failed",
-        error: error.message,
+        message: "User already exists",
       });
     }
-  };
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const newUser = await pool.query(
+      "INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING *",
+      [email, hashedPassword, role]
+    );
+
+    // Create session
+    req.session.userId = newUser.rows[0].id;
+    req.session.userRole = newUser.rows[0].role;
+
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      user: {
+        id: newUser.rows[0].id,
+        email: newUser.rows[0].email,
+        role: newUser.rows[0].role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Registration failed",
+      error: error.message,
+    });
+  }
+});
 
 // Login Route
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find User
+    // Find user
     const user = await pool.query("SELECT * FROM users WHERE email = $1", [
       email,
     ]);
 
-    if (user.row.length === 0) {
+    if (user.rows.length === 0) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
       });
     }
 
-    // Check Password
+    // Check password
     const validPassword = await bcrypt.compare(
       password,
       user.rows[0].password_hash
@@ -86,6 +83,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    // Create session
     req.session.userId = user.rows[0].id;
     req.session.userRole = user.rows[0].role;
 
@@ -108,7 +106,6 @@ router.post("/login", async (req, res) => {
 });
 
 // Logout Route
-
 router.post("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -119,7 +116,9 @@ router.post("/logout", (req, res) => {
     }
     res.json({
       success: true,
-      message: "Logout Successful",
+      message: "Logout successful",
     });
   });
 });
+
+module.exports = router;
