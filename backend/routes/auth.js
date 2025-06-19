@@ -106,4 +106,20 @@ router.post("/login", async (req, res) => {
     });
   }
 });
+
 // Logout Route
+
+router.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Could not log out",
+      });
+    }
+    res.json({
+      success: true,
+      message: "Logout Successful",
+    });
+  });
+});
