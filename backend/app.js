@@ -1,8 +1,25 @@
 const express = require("express");
+const authRoutes = require("./routes/auth");
+
 const app = express();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use("/auth", authRoutes);
+
+// Routes
 app.get("/", (req, res) => {
   res.status(200).send("Server is up and running");
+});
+
+const { requireAuth } = require("./middleware/auth");
+app.get("/profile", requireAuth, (req, res) => {
+  res.json({
+    success: true,
+    message: "This is a protected route",
+    userId: req.session.userId,
+  });
 });
 
 // Test the postgres Database
