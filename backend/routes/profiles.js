@@ -4,7 +4,7 @@ const { requireAuth } = require("../middleware/auth");
 const router = express.Router();
 
 // Validation Helpers
-const createMusicianProfile = async (req, res) => {
+const validateMusicianData = (data) => {
   const errors = [];
 
   // 1) Check required fields exist and are not empty
@@ -99,7 +99,7 @@ const createMusicianProfile = async (req, res) => {
     errors: errors,
   };
 };
-const createVenueProfile = async (req, res) => {
+const validateVenueData = (data) => {
   // Initialize error collection array
   const errors = [];
 
