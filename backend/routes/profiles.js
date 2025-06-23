@@ -235,93 +235,190 @@ const validateVenueData = (data) => {
 
 //Route Handlers
 const createMusicianProfile = async (req, res) => {
-    try {
-        const existingProfile = await pool.query(   // Creating a variable named existingProfile and then using pool to query the database
-            'SELECT id FROM musician_profiles WHERE user_id = $1', // This checks to see if musician profile already exists.  Validation so multiple profiles are not made for same user.  
-            [req.session.userId] // THis is checking the session for the userId
-        );
+  try {
+    const existingProfile = await pool.query(
+      // Creating a variable named existingProfile and then using pool to query the database
+      "SELECT id FROM musician_profiles WHERE user_id = $1", // This checks to see if musician profile already exists.  Validation so multiple profiles are not made for same user.
+      [req.session.userId] // THis is checking the session for the userId
+    );
 
-        if (existingProfile.rows.length > 0) {  // THis is checking to see if there are any profiles for the user
-            return res.status(400).json({ // HTTP status 400 (bad request)
-                success: false,  // JSON response false
-                message: 'user already has a musician profile' // These lines will send an error  because the user already has a profile if more than 0
-            });
-        } 
+    if (existingProfile.rows.length > 0) {
+      // THis is checking to see if there are any profiles for the user
+      return res.status(400).json({
+        // HTTP status 400 (bad request)
+        success: false, // JSON response false
+        message: "user already has a musician profile", // These lines will send an error  because the user already has a profile if more than 0
+      });
+    }
 
-        // Validate data
-        const validationResult = validateMusicianData(req.body);  // This variable validationResult is equal to the return value of the validateMusicianData.  req.body is the input and returns a val result object
-        if (!validationResult.isValid) { // If it does not the same it will send an 400 bad request
-            return res.status(400).json({
-                success: false,  // Json response
-                message: 'Validation failed',  // Message user will see
-                errors: validationResult.errors // sends the error to the validation result
-            });
-        }
+    // Validate data
+    const validationResult = validateMusicianData(req.body); // This variable validationResult is equal to the return value of the validateMusicianData.  req.body is the input and returns a val result object
+    if (!validationResult.isValid) {
+      // If it does not the same it will send an 400 bad request
+      return res.status(400).json({
+        success: false, // Json response
+        message: "Validation failed", // Message user will see
+        errors: validationResult.errors, // sends the error to the validation result
+      });
+    }
 
-        // Insert into database   I am destructuring req.body into individual variables.  
-        const {
-            name, 
-            bio,
-            location, 
-            instruments,
-            genres,
-            experience_level,
-            years_experience,
-            available_for_gigs = true,  // The true and false are default values for these two lines
-            looking_for_band = false,
-            profile_photo_url
-        } = req.body                // This is extracting all of the properties from req.body
+    // Insert into database   I am destructuring req.body into individual variables.
+    const {
+      name,
+      bio,
+      location,
+      instruments,
+      genres,
+      experience_level,
+      years_experience,
+      available_for_gigs = true, // The true and false are default values for these two lines
+      looking_for_band = false,
+      profile_photo_url,
+    } = req.body; // This is extracting all of the properties from req.body
 
-        // If there is no existing we create a newProfile into the database using the above properties 
-        const newProfile = await pool.query(  // Await pauses this function until database operation complets.  it waits for promise to resolve before going to next line..  using pool.query to add following into database
-            `INSERT INTO  musician_profiles
+    // If there is no existing we create a newProfile into the database using the above properties
+    const newProfile = await pool.query(
+      // Await pauses this function until database operation complets.  it waits for promise to resolve before going to next line..  using pool.query to add following into database
+      `INSERT INTO  musician_profiles
             (user_id, name, bio, location, instruments, genres, experience_level, years_experience, available_for_gigs, looking_for_band, profile_photo_url)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING *`,  // This inserts all of the properties into musician_profiles in the database.  user_id to prof. url are properties, THe $1 are placeholer/parameters and it is returning the newly created row
-            [
-                req.session.userId,
-                name,
-                bio || null,
-                location,
-                JSON.stringify(instruments), // JSON.strinfiy turns the values into strings
-                JSON.stringify(genres) || null, // || if this value is falsty (empty, undefined) use null instead.
-                experience_level,
-                years_experience || null,
-                available_for_gigs,
-                looking_for_band,
-                profile_photo_url || null
-            ]  // These are the properites 
-        );
+            RETURNING *`, // This inserts all of the properties into musician_profiles in the database.  user_id to prof. url are properties, THe $1 are placeholer/parameters and it is returning the newly created row
+      [
+        req.session.userId,
+        name,
+        bio || null,
+        location,
+        JSON.stringify(instruments), // JSON.strinfiy turns the values into strings
+        JSON.stringify(genres) || null, // || if this value is falsty (empty, undefined) use null instead.
+        experience_level,
+        years_experience || null,
+        available_for_gigs,
+        looking_for_band,
+        profile_photo_url || null,
+      ] // These are the properites
+    );
 
-        // Send Response   THis is what is pushed if everything is successful
-        res.status(201).json({  // 201 means "Created".  THis is used when something new has been successfully created.  
-            success: true, 
-            message: 'Musician profile created successfully',
-            profile: {  // the properties were already inthe database.  Now i am taking properites FROM the database result and putting them into the response to send back to the client. 
-                id: newProfile.rows[0].id,  //  They create new rows starting at [0] which is the first and should be only. 
-                user_id: newProfile.rows[0].user_id,
-                name: newProfile.rows[0].name, 
-                bio: newProfile.rows[0].bio,
-                location: newProfile.rows[0].location,
-                instruments: JSON.parse(newProfile.rows[0].instruments), // JSON.parse converts a JSON string back into a JavaScript object/array.  
-                 // For the next line.   This is a saftey check to avoid trying to parse null or undefined values which would cause and error
-                genres: newProfile.rows[0].genres ? JSON.parse(newProfile.rows[0].genres): null,  // If generes exist and is truth, parse it from JSON.  If its null/empty.  Return as null.  
-                experience_level: newProfile.rows[0].experience_level,
-                years_experience: newProfile.rows[0].years_experience,
-                available_for_gigs: newProfile.rows[0].available_for_gigs,
-                looking_for_band: newProfile.rows[0].looking_for_band,
-                created_at: newProfile.rows[0].created_at
-            }
-        });
+    // Send Response   THis is what is pushed if everything is successful
+    res.status(201).json({
+      // 201 means "Created".  THis is used when something new has been successfully created.
+      success: true,
+      message: "Musician profile created successfully",
+      profile: {
+        // the properties were already inthe database.  Now i am taking properites FROM the database result and putting them into the response to send back to the client.
+        id: newProfile.rows[0].id, //  They create new rows starting at [0] which is the first and should be only.
+        user_id: newProfile.rows[0].user_id,
+        name: newProfile.rows[0].name,
+        bio: newProfile.rows[0].bio,
+        location: newProfile.rows[0].location,
+        instruments: JSON.parse(newProfile.rows[0].instruments), // JSON.parse converts a JSON string back into a JavaScript object/array.
+        // For the next line.   This is a saftey check to avoid trying to parse null or undefined values which would cause an error
+        genres: newProfile.rows[0].genres
+          ? JSON.parse(newProfile.rows[0].genres)
+          : null, // If generes exist and is truthy, parse it from JSON.  If its null/empty.  Return as null.
+        experience_level: newProfile.rows[0].experience_level,
+        years_experience: newProfile.rows[0].years_experience,
+        available_for_gigs: newProfile.rows[0].available_for_gigs,
+        looking_for_band: newProfile.rows[0].looking_for_band,
+        created_at: newProfile.rows[0].created_at,
+      },
+    });
+  } catch (error) {
+    // Handle Errors   This happens if any errors happen during the try block
+    console.error("Error creating musician profile:", error); // this sends the error to the conse.  calling this message and following it with the actual error
+    res.status(500).json({
+      // 500 is a internal Server Error. used when something goes wrong on server side that the client couldn't prevent
+      success: false, // false means it was not successful
+      message: "Internal server error while creating profile",
+      error: error.message, // error.message goes to the client in the JSON response
+    });
+  }
+};
 
+const createVenueProfile = async (req, res) => {
+  try {
+    const existingProfile = await pool.query(
+      "SELECT id FROM venue_profiles WHERE user_id = $1",
+      [req.session.userId]
+    );
+
+    if (existingProfile.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "User already has a venue profile",
+      });
     }
-}
+
+    // Validate data
+    const validationResult = validateVenueData(req.body);
+    if (!validationResult.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validationResult.errors,
+      });
+    }
+
+    const {
+      business_name,
+      bio,
+      location,
+      venue_type,
+      capacity,
+      contact_person,
+      phone_number,
+      website_url,
+    } = req.body;
+
+    const newProfile = await pool.query(
+      `INSERT INTO venue_profiles 
+    (user_id, business_name, bio, location, venue_type, capacity, contact_person, phone_number, website_url) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING *`,
+      [
+        req.session.userId,
+        business_name,
+        bio || null,
+        location,
+        venue_type,
+        capacity,
+        contact_person || null,
+        phone_number || null,
+        website_url || null,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Venue profile created successfully",
+      profile: {
+        id: newProfile.rows[0].id,
+        user_id: newProfile.rows[0].user_id,
+        business_name: newProfile.rows[0].business_name,
+        bio: newProfile.rows[0].bio,
+        location: newProfile.rows[0].location,
+        venue_type: newProfile.rows[0].venue_type,
+        capacity: newProfile.rows[0].capacity,
+        contact_person: newProfile.rows[0].contact_person,
+        phone_number: newProfile.rows[0].phone_number,
+        website_url: newProfile.rows[0].website_url,
+        created_at: newProfile.rows[0].created_at,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating venue profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while creating profile",
+      error: error.message,
+    });
+  }
+};
 
 // Routes
 router.post("/musician", requireAuth, createMusicianProfile);
 router.post("/venue", requireAuth, createVenueProfile);
 router.get("/me", requireAuth, getCurrentUserProfile);
-router.put("/me", reguireAuth, updateCurrentUserProfile);
+router.put("/me", requireAuth, updateCurrentUserProfile);
 router.get("/:id", getPublicProfile);
 
 module.exports = router;
