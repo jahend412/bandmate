@@ -278,7 +278,7 @@ const createMusicianProfile = async (req, res) => {
 
     // If there is no existing we create a newProfile into the database using the above properties
     const newProfile = await pool.query(
-      // Await pauses this function until database operation complets.  it waits for promise to resolve before going to next line..  using pool.query to add following into database
+      // Await pauses this function until database operation completes.  it waits for promise to resolve before going to next line..  using pool.query to add following into database
       `INSERT INTO  musician_profiles
             (user_id, name, bio, location, instruments, genres, experience_level, years_experience, available_for_gigs, looking_for_band, profile_photo_url)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -409,6 +409,76 @@ const createVenueProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while creating profile",
+      error: error.message,
+    });
+  }
+};
+
+const getCurrentUserProfile = async (req, res) => {
+  try {
+    const currentUser = await pool.query("SELECT role FROM users WHERE id=$1", [
+      req.session.userId,
+    ]);
+
+    // Check if user exists (should exist if logged in)
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userRole = user.rows[0].role; // musician or venue
+
+    // Query the correct profile table based on role
+    let profileQuery;
+    let profileTable;
+
+    if (userRole === "musician") {
+      profileTable = "musician_profiles";
+      profileQuery = `
+        SELECT * FROM musician_profiles WHERE user_id = $1`;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user role",
+      });
+    }
+
+    // Execute the profile query
+    const profileResult = await pool.query(profileQuery, [req.session.userId]);
+
+    // Check if profile exists
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No ${userRole} profile found. Please create your profile first.`,
+        userRole: userRole,
+      });
+    }
+
+    //  Return the profile data
+    const profile = profileResult.rows[0];
+
+    // Handle JSON fields for musicians (instruments, genres)
+    if (userRole === "musician") {
+      profile.instruments = JSON.parse(profile.instruments);
+      if (profile.genres) {
+        profile.genres = JSON.parse(profile.genres);
+      }
+    }
+
+    // Send response
+    res.json({
+      success: true,
+      userRole: userRole,
+      profile: profile,
+    });
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
       error: error.message,
     });
   }
