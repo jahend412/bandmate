@@ -421,14 +421,14 @@ const getCurrentUserProfile = async (req, res) => {
     ]);
 
     // Check if user exists (should exist if logged in)
-    if (user.rows.length === 0) {
+    if (currentUser.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
-    const userRole = user.rows[0].role; // musician or venue
+    const userRole = currentUser.rows[0].role; // musician or venue
 
     // Query the correct profile table based on role
     let profileQuery;
@@ -438,6 +438,9 @@ const getCurrentUserProfile = async (req, res) => {
       profileTable = "musician_profiles";
       profileQuery = `
         SELECT * FROM musician_profiles WHERE user_id = $1`;
+    } else if (userRole === "venue") {
+      profileTable = "venue_profiles";
+      profileQuery = `SELECT * FROM venue_profiles WHERE user_id = $1`;
     } else {
       return res.status(400).json({
         success: false,
