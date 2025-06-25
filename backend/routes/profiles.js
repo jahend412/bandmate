@@ -487,6 +487,171 @@ const getCurrentUserProfile = async (req, res) => {
   }
 };
 
+const updateCurrentUserProfile = async (req, res) => {
+  try {
+    // Get user Role
+    const currentUser = await pool.query(
+      "SELECT role FROM users WHERE id = $1",
+      [req.session.userId]
+    );
+
+    // Check if user exists (should exist if logged in)
+    if (currentUser.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userRole = currentUser.rows[0].role; // musician or venue
+
+    // Validate the incoming data
+    let validationResult;
+    if (userRole === "musician") {
+      validationResult = validateMusicianData(req.body);
+    } else if (userRole === "venue") {
+      validationResult = validateVenueData(req.body);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user role",
+      });
+    }
+
+    if (!validationResult.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validationResult.errors,
+      });
+    }
+
+    // Build UPDATE query based on role
+    let updateQuery;
+    let queryParams;
+
+    if (userRole === "musician") {
+      const {
+        name,
+        bio,
+        location,
+        instruments,
+        genres,
+        experience_level,
+        years_experience,
+        available_for_gigs,
+        looking_for_band,
+        profile_photo_url,
+      } = req.body;
+
+      // UPDATE profile by role
+      // Set specifies which COLUMNS to update with new values
+      // Where specifies which ROW to update
+      // Then it returns all of the users profile data as a response
+      updateQuery = `
+        UPDATE musician_profiles
+        SET name = $1, bio = $2, location = $3, instruments = $4, genres= $5, experience_level=$6,
+        years_experience = $7, available_for_gigs = $8, looking_for_band = $9, profile_photo_url = $10,
+        updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $11
+        RETURNING *
+        `;
+
+      queryParams = [
+        name,
+        bio || null,
+        location,
+        JSON.stringify(instruments),
+        JSON.stringify(genres) || null,
+        experience_level,
+        years_experience || null,
+        available_for_gigs,
+        looking_for_band,
+        profile_photo_url || null,
+        req.session.userId,
+      ];
+    } else if (userRole === "venue") {
+      const {
+        business_name,
+        bio,
+        location,
+        venue_type,
+        capacity,
+        contact_person,
+        phone_number,
+        website_url,
+      } = req.body;
+
+      updateQuery = `
+        UPDATE venue_profiles 
+        SET business_name = $1, bio = $2, location = $3, venue_type = $4, 
+            capacity = $5, contact_person = $6, phone_number = $7, 
+            website_url = $8, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $9
+        RETURNING *
+      `;
+
+      queryParams = [
+        business_name,
+        bio || null,
+        location,
+        venue_type,
+        capacity,
+        contact_person || null,
+        phone_number || null,
+        website_url || null,
+        req.session.userId,
+      ];
+    }
+
+    // Execute the UPDATE query
+    // the updateResult is asynchronus so everything will wait until this pool.query runs
+    // Pool takes our SQL and runs it against the database:
+    // Then queryParams is the exactly data that is being updated
+    const updateResult = await pool.query(updateQuery, queryParams);
+    // Sends to PostgreSQL:
+    // PostgreSWL find the right row and updates it and then returns the updated data back to us.
+
+    // Check if profile was found and updated
+    if (updateResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No ${userRole} profile found.  Please create your profile first`,
+        userRole: userRole,
+      });
+    }
+
+    // Formate the response data.  Created variable constant updatedProfile and extracting data from the first and only updated row from database result
+    const updatedProfile = updateResult.rows[0];
+
+    // Handle JSON parsing for musicians
+    // Convert JSON strings from database to JavaScript arrays
+    // Database: '["guitar", "bass"]' (string) → JavaScript: ["guitar", "bass"] (array)
+    // PostgreSQL stores arrays as JSON text, but frontend/API needs actual arrays
+    if (userRole === "musician") {
+      updatedProfile.instruments = JSON.parse(updatedProfile.instruments);
+      if (updatedProfile.genres) {
+        updatedProfile.genres = JSON.parse(updatedProfile.genres);
+      }
+    }
+
+    // Send Success response
+    res.json({
+      success: true,
+      message: `${userRole} profile updated successfully`,
+      userRole: userRole,
+      profile: updatedProfile,
+    });
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "internal server error while updating profile",
+      error: error.message,
+    });
+  }
+};
+
 // Routes
 router.post("/musician", requireAuth, createMusicianProfile);
 router.post("/venue", requireAuth, createVenueProfile);
