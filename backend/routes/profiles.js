@@ -652,6 +652,90 @@ const updateCurrentUserProfile = async (req, res) => {
   }
 };
 
+const getPublicProfile = async (req, res) => {
+  try {
+    const profileUserId = req.params.id; // We are pulling the data from the user from params.id
+
+    // Get user Role
+    const currentUser = await pool.query(
+      "SELECT role FROM users WHERE id = $1",
+      [profileUserId]
+    );
+
+    // Check if user exists
+    if (currentUser.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userRole = currentUser.rows[0].role; // Fixed: moved this line up here
+
+    // Query the correct profile table based on role
+    let publicProfileQuery;
+    let publicProfileTable;
+
+    if (userRole === "musician") {
+      publicProfileTable = "musician_profiles";
+      publicProfileQuery = `SELECT * FROM musician_profiles WHERE user_id = $1`;
+    } else if (userRole === "venue") {
+      publicProfileTable = "venue_profiles";
+      publicProfileQuery = `SELECT * FROM venue_profiles WHERE user_id = $1`;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user role",
+      });
+    }
+
+    // Execute the profile query
+    const profileResult = await pool.query(publicProfileQuery, [profileUserId]);
+
+    // Check if profile exists
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No ${userRole} profile found.`,
+        userRole: userRole,
+      });
+    }
+
+    // Return the profile data
+    const profile = profileResult.rows[0];
+
+    // Handle JSON fields for musicians (instruments, genres)
+    if (userRole === "musician") {
+      profile.instruments = JSON.parse(profile.instruments);
+      if (profile.genres) {
+        profile.genres = JSON.parse(profile.genres);
+      }
+    }
+    // Filter out private data for venues only
+    let publicProfile;
+    if (userRole === "venue") {
+      // Remove contact_person and phone_number from venue profiles
+      const { contact_person, phone_number, ...filteredProfile } = profile;
+      publicProfile = filteredProfile;
+    } else {
+      // Musicians - no filtering needed, show all data
+      publicProfile = profile;
+    }
+    res.json({
+      success: true,
+      message: "Public profile has been found",
+      userRole: userRole,
+      publicProfile: publicProfile,
+    });
+  } catch (error) {
+    console.error("Error getting public profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 // Routes
 router.post("/musician", requireAuth, createMusicianProfile);
 router.post("/venue", requireAuth, createVenueProfile);
