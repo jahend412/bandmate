@@ -1,8 +1,16 @@
 const express = require("express");
 const authRoutes = require("./routes/auth");
 const session = require("express-session");
+const cors = require("cors");
 
 const app = express();
+
+app.use(
+  cors({
+    origin: "http://localhost:3001",
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
