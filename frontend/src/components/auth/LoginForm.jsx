@@ -43,12 +43,30 @@ const LoginForm = () => {
 
       if (response.ok) {
         // Success! Redirect based on user role
-        if (result.user?.role === "musician") {
-          router.push("/dashboard/musician");
-        } else if (result.user?.role === "venue") {
-          router.push("/dashboard/venue");
-        } else {
-          router.push("/dashboard");
+        const userRole = result.user?.role;
+
+        try {
+          const profileResponse = await fetch(
+            "http://localhost:3000/profiles/me",
+            {
+              credentials: "include",
+            }
+          );
+
+          if (profileResponse.status === 404) {
+            // No profile exists - redirect to create Profile
+            router.push(`/create-profile/${userRole}`);
+          } else if (profileResponse.ok) {
+            // Profile exists - go to dashboard
+            router.push(`/dashboard/${userRole}`);
+          } else {
+            // Other error with profile check - default to dashboard
+            router.push(`/dashboard/${userRole}`);
+          }
+        } catch (profileError) {
+          console.error("Profile check error:", profileError);
+          // On error, default to dashboard (they can navigate to create profile if needed)
+          router.push(`/dashboard/${userRole}`);
         }
       } else {
         // Handle different error types
