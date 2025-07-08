@@ -36,8 +36,50 @@ export default function CreateMusicianProfile() {
           Create Your Profile
         </h2>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <p>Form fields will go here</p>
-
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Name *
+            </label>
+            <input
+              id="name"
+              type="text"
+              {...register("name", {
+                required: "Name is requied",
+                maxLength: {
+                  value: 100,
+                  message: "Name can not be more than 100 characters",
+                },
+              })}
+              placeholder="Full Name"
+            />
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor="location"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Location *
+            </label>
+            <input
+              id="location"
+              type="text"
+              {...register("location", {
+                required: "Location is requied",
+              })}
+              placeholder="Location"
+            />
+            {errors.location && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.location.message}
+              </p>
+            )}
+          </div>
           <button
             type="submit"
             disabled={isLoading}
