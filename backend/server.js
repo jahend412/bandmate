@@ -1,6 +1,5 @@
 require("dotenv").config();
 const app = require("./app.js");
-const session = require("express-session");
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
