@@ -41,9 +41,10 @@ export default function CreateMusicianProfile() {
               htmlFor="name"
               className="block text-sm font-medium text-gray-700"
             >
-              Name *
+              Name
             </label>
             <input
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               id="name"
               type="text"
               {...register("name", {
@@ -64,9 +65,10 @@ export default function CreateMusicianProfile() {
               htmlFor="location"
               className="block text-sm font-medium text-gray-700"
             >
-              Location *
+              Location
             </label>
             <input
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               id="location"
               type="text"
               {...register("location", {
@@ -77,6 +79,28 @@ export default function CreateMusicianProfile() {
             {errors.location && (
               <p className="mt-1 text-sm text-red-600">
                 {errors.location.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor="instruments"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Instruments
+            </label>
+            <input
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              id="instruments"
+              type="text"
+              {...register("instruments", {
+                required: "Instruments required",
+              })}
+              placeholder="Instruments"
+            />
+            {errors.instruments && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.instruments.message}
               </p>
             )}
           </div>
