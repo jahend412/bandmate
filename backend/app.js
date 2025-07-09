@@ -1,5 +1,6 @@
 const express = require("express");
 const authRoutes = require("./routes/auth");
+const profileRoutes = require("./routes/profiles");
 const session = require("express-session");
 const cors = require("cors");
 
@@ -27,6 +28,7 @@ app.use(
   })
 );
 
+app.use("/profiles", profileRoutes);
 app.use("/auth", authRoutes);
 
 // Routes
