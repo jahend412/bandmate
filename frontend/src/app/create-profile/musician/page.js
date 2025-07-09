@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import Link from "next/link";
 
 export default function CreateMusicianProfile() {
+  const router = useRouter();
   // Register connects inputs to form, handleSubmit wrats submit function
   // formState.errors contains validation error messages
   const {
@@ -25,16 +26,45 @@ export default function CreateMusicianProfile() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Submit Handler
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
+    // Convert instruments string to array
     const formattedData = {
       ...data,
       instruments: data.instruments.split(",").map((item) => item.trim()),
     };
-    console.log("Original:", data.instruments);
-    console.log("Converted:", formattedData.instruments);
-    console.log("Final data:", formattedData);
-  };
 
+    // Debug:
+    console.log("Sending to backend:", formattedData);
+    console.log("Instruments type", typeof formattedData.instruments);
+    console.log("Instruments Value:", formattedData.instruments);
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/profiles/musician", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(formattedData),
+      });
+
+      const result = await response.json();
+      console.log(result);
+      if (response.ok) {
+        // Success! Redirect to dashboard
+        router.push("/dashboard/musician");
+      } else {
+        console.error("Error:", result);
+        // Handle errors
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
