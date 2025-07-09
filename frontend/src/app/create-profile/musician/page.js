@@ -26,7 +26,13 @@ export default function CreateMusicianProfile() {
 
   // Submit Handler
   const onSubmit = (data) => {
-    console.log("Form data:", data);
+    const formattedData = {
+      ...data,
+      instruments: data.instruments.split(",").map((item) => item.trim()),
+    };
+    console.log("Original:", data.instruments);
+    console.log("Converted:", formattedData.instruments);
+    console.log("Final data:", formattedData);
   };
 
   return (
