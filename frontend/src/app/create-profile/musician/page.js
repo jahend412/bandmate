@@ -110,6 +110,73 @@ export default function CreateMusicianProfile() {
               </p>
             )}
           </div>
+          <div>
+            <label
+              htmlFor="experience_level"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Experience Level
+            </label>
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center">
+                <input
+                  id="beginner"
+                  type="radio"
+                  value="beginner"
+                  {...register("experience_level", {
+                    required: "Experience Level Required",
+                  })}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="beginner"
+                  className="ml-2 text-sm text-gray-700"
+                >
+                  Beginner
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="intermediate"
+                  type="radio"
+                  value="intermediate"
+                  {...register("experience_level", {
+                    required: "Experience Level Required",
+                  })}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="intermediate"
+                  className="ml-2 text-sm text-gray-700"
+                >
+                  Intermediate
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="professional"
+                  type="radio"
+                  value="professional"
+                  {...register("experience_level", {
+                    required: "Experience Level Required",
+                  })}
+                  className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="professional"
+                  className="ml-2 text-sm text-gray-700"
+                >
+                  Professional
+                </label>
+              </div>
+            </div>
+            {errors.experience_level && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.experience_level.message}
+              </p>
+            )}
+          </div>
+
           <button
             type="submit"
             disabled={isLoading}
