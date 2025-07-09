@@ -310,7 +310,7 @@ const createMusicianProfile = async (req, res) => {
         name: newProfile.rows[0].name,
         bio: newProfile.rows[0].bio,
         location: newProfile.rows[0].location,
-        instruments: JSON.parse(newProfile.rows[0].instruments), // JSON.parse converts a JSON string back into a JavaScript object/array.
+        instruments: newProfile.rows[0].instruments, // JSON.parse converts a JSON string back into a JavaScript object/array.
         // For the next line.   This is a saftey check to avoid trying to parse null or undefined values which would cause an error
         genres: newProfile.rows[0].genres
           ? JSON.parse(newProfile.rows[0].genres)
@@ -465,7 +465,6 @@ const getCurrentUserProfile = async (req, res) => {
 
     // Handle JSON fields for musicians (instruments, genres)
     if (userRole === "musician") {
-      profile.instruments = JSON.parse(profile.instruments);
       if (profile.genres) {
         profile.genres = JSON.parse(profile.genres);
       }
@@ -739,7 +738,7 @@ const getPublicProfile = async (req, res) => {
 // Routes
 router.post("/musician", requireAuth, createMusicianProfile);
 router.post("/venue", requireAuth, createVenueProfile);
-router.get("/me", requireAuth, getCurrentUserProfile);
+router.get("/me", getCurrentUserProfile);
 router.put("/me", requireAuth, updateCurrentUserProfile);
 router.get("/:id", getPublicProfile);
 
