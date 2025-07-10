@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-export default function MusiciansPage({ user }) {
+export default function MusiciansPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
