@@ -26,7 +26,7 @@ export default function MusiciansPage() {
 
   return (
     <div>
-      <h1>Welcome Back ${user} </h1>
+      {user ? <h1>Welcome Back {user.name}!</h1> : <h1>Welcome Back!</h1>}
     </div>
   );
 }
