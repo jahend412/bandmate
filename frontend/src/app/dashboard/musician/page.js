@@ -27,6 +27,7 @@ export default function MusiciansPage() {
   return (
     <div>
       {user ? <h1>Welcome Back {user.name}!</h1> : <h1>Welcome Back!</h1>}
+      <h2>{user?.instruments?.join(", ") || "No instruments listed"}</h2>
     </div>
   );
 }
